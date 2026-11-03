@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Federation lab: the bridge and the kitchen</title>
+<style>
+:root{--ink:#1d2433;--paper:#f3efe6;--card:#fffdf8;--line:#d8d1c0;--muted:#6b6658;--rat:#3d4f8a;--frog:#2f7a45;--warn:#b3261e}
+@media(prefers-color-scheme:dark){:root{--ink:#e8e4d8;--paper:#161a24;--card:#1f2432;--line:#363d52;--muted:#9a9686;--rat:#8fa4e8;--frog:#7fd18f;--warn:#ff8a80}}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 Georgia,'Times New Roman',serif}
+header,main{max-width:1100px;margin:auto;padding:16px 20px}
+h1{margin:0 0 4px;font-size:28px}p{margin:0;color:var(--muted)}
+form{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+input,select,button{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+input[name=body]{flex:1;min-width:220px}button{cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.col{background:var(--card);border:1px solid var(--line);border-top-width:4px;border-radius:8px;padding:14px}
+.col.bridge{border-top-color:var(--rat)}.col.frogs{border-top-color:var(--frog)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h2{margin:0;font-size:18px}h3{margin:14px 0 6px;font-size:14px;color:var(--muted)}
+.pill{padding:1px 10px;border-radius:99px;border:1px solid currentColor;font-size:13px}.on{color:var(--frog)}.off{color:var(--warn)}
+ul{list-style:none;margin:0;padding:0}li{padding:5px 0;border-top:1px solid var(--line)}
+.meta{font-size:13px;color:var(--muted)}.log{font:12.5px ui-monospace,Menlo,monospace}
+</style></head><body>
+<header><h1>Under the bridge, in the kitchen</h1>
+<p>Two tiny federated instances. Send a comment across, then take one offline and watch the queue retry.</p>
+<form id="f"><select name="from"><option value="bridge">Rat (Bridge Cinema) comments in frogs' community</option><option value="frogs">Frog (Gourmet Frogs) comments in rats' community</option></select>
+<input name="author" placeholder="Name" value="Projectionist" size="12" required><input name="body" placeholder="Anyone free to cater movie night?" required><button>Send</button></form></header>
+<main><div class="grid" id="grid"></div></main>
+<script>
+// After deploying, replace ellbi3 with your workers.dev subdomain.
+const BASE={bridge:'https://bridge-cinema.ellbi3.workers.dev',frogs:'https://gourmet-frogs.ellbi3.workers.dev'};
+const TITLE={bridge:'Bridge Cinema (rats)',frogs:'PNW Gourmet Frogs'},COMM={bridge:'bridge_cinema',frogs:'gourmet_frogs'},PEER={bridge:'frogs',frogs:'bridge'};
+const online={};
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const grid=document.getElementById('grid');
+const cols={};
+for(const k of ['bridge','frogs']){
+  const col=el('section','col '+k),head=el('div','head'),pill=el('span','pill','checking'),btn=el('button',null,'Take offline');
+  head.append(el('h2',null,TITLE[k]),pill,btn);
+  const cm=el('ul'),dl=el('ul','log');
+  col.append(head,el('h3',null,'Comments'),cm,el('h3',null,'Delivery log'),dl);grid.append(col);cols[k]={pill,btn,cm,dl};
+  btn.onclick=async()=>{await fetch(BASE[k]+'/api/online',{method:'POST',body:JSON.stringify({online:!online[k]})});poll(k)};
+}
+async function poll(k){
+  const c=cols[k];
+  try{
+    const s=await (await fetch(BASE[k]+'/api/state')).json();online[k]=s.online;
+    c.pill.textContent=s.online?'online':'offline';c.pill.className='pill '+(s.online?'on':'off');c.btn.textContent=s.online?'Take offline':'Bring online';
+    c.cm.replaceChildren(...s.comments.map(m=>{const li=el('li');li.append(el('div',null,m.author+' in '+m.community+': '+m.body),el('div','meta','from '+m.origin+(m.status?' · '+m.status:'')));return li}));
+    c.dl.replaceChildren(...s.deliveries.map(d=>el('li',null,new Date(d.updated_at).toLocaleTimeString()+'  '+d.status+'  attempt '+d.attempts+'  '+(d.detail||''))));
+  }catch{c.pill.textContent='unreachable';c.pill.className='pill off'}
+}
+document.getElementById('f').onsubmit=async e=>{
+  e.preventDefault();const f=new FormData(e.target),from=f.get('from');
+  await fetch(BASE[from]+'/api/comments',{method:'POST',body:JSON.stringify({author:f.get('author'),community:COMM[PEER[from]],body:f.get('body')})});
+  e.target.body.value='';poll('bridge');poll('frogs');
+};
+const tick=()=>{poll('bridge');poll('frogs')};tick();setInterval(()=>{if(!document.hidden)tick()},5000)
+</script></body></html>

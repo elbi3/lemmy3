@@ -1,0 +1,25 @@
+name = "bridge-cinema"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+INSTANCE = "bridge"
+HOME_COMMUNITY = "bridge_cinema"
+PEER_URL = "https://gourmet-frogs.ellbi3.workers.dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bridge-db"
+database_id = "eedf9394-473b-4575-a1ae-39449596bbdf"
+
+[[queues.producers]]
+binding = "DELIVERY"
+queue = "bridge-delivery"
+
+[[queues.consumers]]
+queue = "bridge-delivery"
+max_retries = 40
+
+[[services]]
+binding = "PEER"
+service = "gourmet-frogs"
