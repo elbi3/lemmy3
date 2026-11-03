@@ -2,7 +2,7 @@
 
 Two tiny "instances" (🐀 **Bridge Cinema** for the rats, 🐸 **PNW Gourmet Frogs**) that exchange signed comments over HTTP, with a queue, retries, and a dashboard that can take either instance offline. It recreates the *federation delivery* pattern used by [Lemmy](https://join-lemmy.org/), not Lemmy's code.
 
-- **Live demo:** `[plant-kennel.me/lab](https://plant-kennel.me/lab/)` 
+- **Live demo:** [plant-kennel.me/lab](https://plant-kennel.me/lab/) 
 - **Repository:** https://github.com/elbi3/lemmy3
 
 ---
